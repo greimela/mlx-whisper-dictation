@@ -1,5 +1,5 @@
 # Multilingual Dictation App based on OpenAI Whisper
-Multilingual dictation app based on the powerful OpenAI Whisper ASR model(s) to provide accurate and efficient speech-to-text conversion in any application. The app runs in the background and is triggered through a keyboard shortcut. It is also entirely offline, so no data will be shared. It allows users to set up their own keyboard combinations and choose from different Whisper models, and languages.
+Multilingual dictation app based on the open-source Apple MLX (does not seem to be an abbreviation officially, although one might infer that it stands for Machine Learning "X", with "X" being whatever your mind wants it to be) OpenAI Whisper speech-to-text model(s) to provide accurate and efficient speech-to-text conversion in any application. The app runs in the background and is triggered through a keyboard shortcut. It allows users to set up their own keyboard combinations and choose from different MLX Whisper models, and languages.
 
 ## Prerequisites
 The PortAudio and llvm library is required for this app to work. You can install it on macOS using the following command:

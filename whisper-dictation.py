@@ -17,7 +17,7 @@ import platform
 
 class SpeechTranscriber:
 
-    # removed model taking
+    # removed model from arguments
     def __init__(self):
 
         # self.model = model
