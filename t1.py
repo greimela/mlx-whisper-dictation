@@ -8,7 +8,7 @@ from pynput import keyboard
 
 # from whisper import load_model
 
-# added because of MLX
+# changed because of MLX
 import mlx_whisper
 from mlx_whisper.load_models import load_model
 
@@ -16,20 +16,12 @@ import platform
 
 
 class SpeechTranscriber:
-
-    # removed model taking
-    def __init__(self):
-
-        # self.model = model
+    def __init__(self, model):
+        self.model = model
         self.pykeyboard = keyboard.Controller()
 
     def transcribe(self, audio_data, language=None):
-
-        # changed because of MLX
-        result = mlx_whisper.transcribe(
-            audio_data, language=language, path_or_hf_repo=model_name
-        )
-
+        result = self.model.transcribe(audio_data, language=language)
         is_first = True
         for element in result["text"]:
             if is_first and element == " ":
@@ -216,68 +208,31 @@ class StatusBarApp(rumps.App):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Dictation app using the MLX OpenAI Whisper model. By default the keyboard shortcut cmd+option "
-        "starts and stops dictation",
+        description="Dictation app using the OpenAI whisper ASR model. By default the keyboard shortcut cmd+option "
+        "starts and stops dictation"
     )
     parser.add_argument(
         "-m",
         "--model_name",
         type=str,
         choices=[
-            "mlx-community/whisper-large-v3-mlx",
-            "mlx-community/whisper-tiny-mlx-q4",
-            "mlx-community/whisper-large-v2-mlx-fp32",
-            "mlx-community/whisper-tiny.en-mlx-q4",
-            "mlx-community/whisper-base.en-mlx-q4",
-            "mlx-community/whisper-small.en-mlx-q4",
-            "mlx-community/whisper-tiny-mlx-fp32",
-            "mlx-community/whisper-base-mlx-fp32",
-            "mlx-community/whisper-small-mlx-fp32",
-            "mlx-community/whisper-medium-mlx-fp32",
-            "mlx-community/whisper-base-mlx-2bit",
-            "mlx-community/whisper-tiny-mlx-8bit",
-            "mlx-community/whisper-tiny.en-mlx-4bit",
-            "mlx-community/whisper-base-mlx",
-            "mlx-community/whisper-base-mlx-8bit",
-            "mlx-community/whisper-base.en-mlx-4bit",
-            "mlx-community/whisper-small-mlx",
-            "mlx-community/whisper-small-mlx-8bit",
-            "mlx-community/whisper-small.en-mlx-4bit",
-            "mlx-community/whisper-medium-mlx-8bit",
-            "mlx-community/whisper-medium.en-mlx-8bit",
-            "mlx-community/whisper-large-mlx-4bit",
-            "mlx-community/whisper-large-v1-mlx",
-            "mlx-community/whisper-large-v1-mlx-8bit",
-            "mlx-community/whisper-large-v2-mlx-8bit",
-            "mlx-community/whisper-large-v2-mlx-4bit",
-            "mlx-community/whisper-large-v1-mlx-4bit",
-            "mlx-community/whisper-large-mlx-8bit",
-            "mlx-community/whisper-large-mlx",
-            "mlx-community/whisper-medium.en-mlx-4bit",
-            "mlx-community/whisper-small.en-mlx-8bit",
-            "mlx-community/whisper-small.en-mlx",
-            "mlx-community/whisper-small-mlx-4bit",
-            "mlx-community/whisper-base.en-mlx-8bit",
-            "mlx-community/whisper-base.en-mlx",
-            "mlx-community/whisper-base-mlx-4bit",
-            "mlx-community/whisper-tiny.en-mlx-8bit",
-            "mlx-community/whisper-tiny.en-mlx",
-            "mlx-community/whisper-tiny-mlx",
-            "mlx-community/whisper-medium.en-mlx-fp32",
-            "mlx-community/whisper-small.en-mlx-fp32",
-            "mlx-community/whisper-base.en-mlx-fp32",
-            "mlx-community/whisper-tiny.en-mlx-fp32",
-            "mlx-community/whisper-medium-mlx-q4",
-            "mlx-community/whisper-small-mlx-q4",
-            "mlx-community/whisper-base-mlx-q4",
-            "mlx-community/whisper-large-v3-turbo",
-            "mlx-community/whisper-turbo",
+            "tiny",
+            "tiny.en",
+            "base",
+            "base.en",
+            "small",
+            "small.en",
+            "medium",
+            "medium.en",
+            "large",
         ],
         default="mlx-community/whisper-large-v3-mlx",
-        help='''Specify the MLX Whisper model to use. Example: mlx-community/whisper-large-v3-mlx.
-        To see the  most up to date list of models visit https://huggingface.co/collections/mlx-community/whisper-663256f9964fbb1177db93dc?utm_source=chatgpt.com. 
-        Note that the models ending in .en are trained only on English speech and will perform better on English 
-        language.''',
+        help="Specify the whisper ASR model to use. Options: tiny, base, small, medium, or large. "
+        "To see the  most up to date list of models along with model size, memory footprint, and estimated "
+        "transcription speed check out this [link](https://github.com/openai/whisper#available-models-and-languages). "
+        "Note that the models ending in .en are trained only on English speech and will perform better on English "
+        "language. Note that the small, medium, and large models may be slow to transcribe and are only recommended "
+        "if you find the base model to be insufficient. Default: base.",
     )
     parser.add_argument(
         "-k",
@@ -331,24 +286,13 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    # commented out
-    """
     print("Loading model...")
-    
-    #added this
     print('model_name:', args.model_name)
-    
-    model = load_model(model_name)
-    
-    #added this
-    print(f"{model_name} model loaded")
-    """
-
-    # delayed order of this line
     model_name = args.model_name
+    model = load_model(model_name)
+    print(f"{model_name} model loaded")
 
-    # removed model argument passing
-    transcriber = SpeechTranscriber()
+    transcriber = SpeechTranscriber(model)
     recorder = Recorder(transcriber)
 
     app = StatusBarApp(recorder, args.language, args.max_time)
@@ -361,5 +305,5 @@ if __name__ == "__main__":
     )
     listener.start()
 
-    print("Running... \n bunning")
+    print("Running... ")
     app.run()
