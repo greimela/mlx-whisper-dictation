@@ -1,57 +1,108 @@
-begin new tentative instructions
+# MLX Whisper Dictation - Installation and Usage Guide
 
-Enter /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" in terminal to download home-brew
+## Step 1: Install Homebrew
+1. Open your terminal and run:
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+2. Add Homebrew to your `PATH`:
+   ```bash
+   export PATH="/opt/homebrew/bin:$PATH"
+   ```
 
-Enter export PATH="/opt/homebrew/bin:$PATH" in terminal to add home-brew to ur path
+---
 
-nano ~/.zshrc
+## Step 2: Configure Zsh
+1. Open the Zsh configuration file:
+   ```bash
+   nano ~/.zshrc
+   ```
+2. Add the following line:
+   ```bash
+   source ~/.zshrc
+   ```
+3. Save and exit:
+   - Press `Ctrl + X`
+   - Press `Y`
+   - Press `Enter`
+4. Reload the configuration:
+   ```bash
+   source ~/.zshrc
+   ```
 
-Paste source ~/.zshrc
+---
 
-Ctrl x, y, enter
+## Step 3: Install Required Packages
+Run this command to install the necessary packages:
+```bash
+brew install portaudio llvm
+```
 
-Paste source ~/.zshrc
+---
 
+## Step 4: Clone the Repository
+1. Navigate to your `Documents` folder:
+   ```bash
+   cd ~/Documents
+   ```
+2. Clone the repository:
+   ```bash
+   git clone https://github.com/computerstimulation/mlx-whisper-dictation
+   ```
+3. Navigate into the project folder:
+   ```bash
+   cd mlx-whisper-dictation
+   ```
 
-Enter brew install portaudio llvm in terminal to download these required packages for the app
+---
 
-In ur documents folder: Git clone https://github.com/computerstimulation/mlx-whisper-dictation
+## Step 5: Set Up a Virtual Environment
+1. Create a virtual environment:
+   ```bash
+   python3.11 -m venv venv
+   ```
+2. Activate the virtual environment:
+   ```bash
+   source venv/bin/activate
+   ```
 
-Cd mlx whisper dictation
+---
 
-Create a virtual environment: 
-python3.11 -m venv venv              
-source venv/bin/activate
-
-Install the rest of the app’s required packages
+## Step 6: Install Dependencies
+Install the app's required dependencies:
+```bash
 pip install -r requirements.txt
+```
+Wait for the dependencies to finish downloading.
 
-Wait for dependencies to download
+---
 
-Run the app using this command: 
+## Step 7: Run the App
+Run the application:
+```bash
 python whisper-dictation.py
+```
 
-Go to a text field have ur cursor on it
+---
 
-Press command option
+## Step 8: Use the App
+1. Open a text field and place your cursor in it.
+2. Press `Command + Option` to start dictation.
+3. If prompted with “Terminal would like to access the microphone,” press **Allow**.
+4. Speak into your microphone.
+5. Press `Command + Option` again to stop dictation.
 
-If prompted with “Terminal” would like to access the microphone. Press Allow
+---
 
-Speak
+### Notes:
+- The first time you use the app, the model may take some time to download.
+- The default model is **MLX Whisper Large** (highest quality but slower processing time).
+- You can change the model in the app configuration.
 
-Press command option
+If your cursor is on a text field, transcribed text will be automatically pasted.
 
-Wait for model to download if first time using app
+To stop the app, press `Ctrl + C` in the terminal.
 
-Default model is mlx whisper large (highest quality, slowest time)
-
-You can change the model
-
-If your cursor is still on your text field you may see the text being automatically pasted
-
-Press control c in terminal to turn off the app
-
-end new tentative instructions
 
 # Multilingual Dictation App based on OpenAI Whisper
 Multilingual dictation app based on the open-source Apple MLX (does not seem to be an abbreviation officially, although one might infer that it stands for Machine Learning "X", with "X" being whatever your mind wants it to be) OpenAI Whisper speech-to-text model(s) to provide accurate and efficient speech-to-text conversion in any application. The app runs in the background and is triggered through a keyboard shortcut. It allows users to set up their own keyboard combinations and choose from different MLX Whisper models, and languages.
