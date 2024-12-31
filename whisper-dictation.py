@@ -274,10 +274,10 @@ def parse_args():
             "mlx-community/whisper-turbo",
         ],
         default="mlx-community/whisper-large-v3-mlx",
-        help='''Specify the MLX Whisper model to use. Example: mlx-community/whisper-large-v3-mlx.
+        help="""Specify the MLX Whisper model to use. Example: mlx-community/whisper-large-v3-mlx.
         To see the  most up to date list of models visit https://huggingface.co/collections/mlx-community/whisper-663256f9964fbb1177db93dc?utm_source=chatgpt.com. 
         Note that the models ending in .en are trained only on English speech and will perform better on English 
-        language.''',
+        language.""",
     )
     parser.add_argument(
         "-k",
@@ -361,5 +361,5 @@ if __name__ == "__main__":
     )
     listener.start()
 
-    print("Running... \n bunning")
+    print("Running...")
     app.run()
