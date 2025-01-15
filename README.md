@@ -1,5 +1,9 @@
 # MLX Whisper Dictation - Installation and Usage Guide
 
+[Watch the video on YouTube](https://youtu.be/O1NsoeECVAs?si=JMD7JCvD6LbahQU9)
+
+[Watch the video on Odysee](https://odysee.com/mlx-whisper-dictation:f)
+
 ## Step 1: Install Homebrew
 1. Open your terminal and run:
    ```bash
