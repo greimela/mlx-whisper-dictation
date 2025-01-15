@@ -59,7 +59,7 @@ brew install portaudio llvm
 ## Step 5: Set Up a Virtual Environment
 1. Create a virtual environment:
    ```bash
-   python3.11 -m venv venv
+   python3.12 -m venv venv
    ```
 2. Activate the virtual environment:
    ```bash
