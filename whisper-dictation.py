@@ -3,7 +3,6 @@ import time
 import threading
 import pyaudio
 import numpy as np
-import rumps
 from pynput import keyboard
 
 # from whisper import load_model
@@ -17,30 +16,31 @@ import platform
 
 class SpeechTranscriber:
 
-    # removed model from arguments
-    def __init__(self):
-
-        # self.model = model
+    def __init__(self, model_name, language=None, custom_vocabulary=None):
+        self.model_name = model_name
+        self.language = language
+        self.custom_vocabulary = custom_vocabulary
         self.pykeyboard = keyboard.Controller()
 
-    def transcribe(self, audio_data, language=None):
-
-        # changed because of MLX
+    def transcribe(self, audio_data):
         result = mlx_whisper.transcribe(
-            audio_data, language=language, path_or_hf_repo=model_name
+            audio_data,
+            path_or_hf_repo=self.model_name,
+            language=self.language,
+            initial_prompt=self.custom_vocabulary,
         )
 
-        is_first = True
-        for element in result["text"]:
-            if is_first and element == " ":
-                is_first = False
-                continue
+        # MLX Whisper returns a dict with 'text' as a string
+        text = result["text"].strip()
 
-            try:
-                self.pykeyboard.type(element)
-                time.sleep(0.0025)
-            except:
-                pass
+        # Split text into words and type them with spaces in between
+        words = text.split()
+        for i, word in enumerate(words):
+            self.pykeyboard.type(word)
+            # Add space between words, but not after the last word
+            if i < len(words) - 1:
+                self.pykeyboard.press(keyboard.Key.space)
+                self.pykeyboard.release(keyboard.Key.space)
 
 
 class Recorder:
@@ -48,14 +48,14 @@ class Recorder:
         self.recording = False
         self.transcriber = transcriber
 
-    def start(self, language=None):
-        thread = threading.Thread(target=self._record_impl, args=(language,))
+    def start(self):
+        thread = threading.Thread(target=self._record_impl)
         thread.start()
 
     def stop(self):
         self.recording = False
 
-    def _record_impl(self, language):
+    def _record_impl(self):
         self.recording = True
         frames_per_buffer = 1024
         p = pyaudio.PyAudio()
@@ -78,15 +78,16 @@ class Recorder:
 
         audio_data = np.frombuffer(b"".join(frames), dtype=np.int16)
         audio_data_fp32 = audio_data.astype(np.float32) / 32768.0
-        self.transcriber.transcribe(audio_data_fp32, language)
+        self.transcriber.transcribe(audio_data_fp32)
 
 
 class GlobalKeyListener:
-    def __init__(self, app, key_combination):
-        self.app = app
+    def __init__(self, recorder, key_combination):
+        self.recorder = recorder
         self.key1, self.key2 = self.parse_key_combination(key_combination)
         self.key1_pressed = False
         self.key2_pressed = False
+        self.is_recording = False
 
     def parse_key_combination(self, key_combination):
         key1_name, key2_name = key_combination.split("+")
@@ -101,7 +102,15 @@ class GlobalKeyListener:
             self.key2_pressed = True
 
         if self.key1_pressed and self.key2_pressed:
-            self.app.toggle()
+            if not self.is_recording:
+                print("Listening...")
+                self.recorder.start()
+                self.is_recording = True
+            else:
+                print("Transcribing...")
+                self.recorder.stop()
+                self.is_recording = False
+                print("Done.")
 
     def on_key_release(self, key):
         if key == self.key1:
@@ -110,114 +119,9 @@ class GlobalKeyListener:
             self.key2_pressed = False
 
 
-class DoubleCommandKeyListener:
-    def __init__(self, app):
-        self.app = app
-        self.key = keyboard.Key.cmd_r
-        self.pressed = 0
-        self.last_press_time = 0
-
-    def on_key_press(self, key):
-        is_listening = self.app.started
-        if key == self.key:
-            current_time = time.time()
-            if (
-                not is_listening and current_time - self.last_press_time < 0.5
-            ):  # Double click to start listening
-                self.app.toggle()
-            elif is_listening:  # Single click to stop listening
-                self.app.toggle()
-            self.last_press_time = current_time
-
-    def on_key_release(self, key):
-        pass
-
-
-class StatusBarApp(rumps.App):
-    def __init__(self, recorder, languages=None, max_time=None):
-        super().__init__("whisper", "⏯")
-        self.languages = languages
-        self.current_language = languages[0] if languages is not None else None
-
-        menu = [
-            "Start Recording",
-            "Stop Recording",
-            None,
-        ]
-
-        if languages is not None:
-            for lang in languages:
-                callback = (
-                    self.change_language if lang != self.current_language else None
-                )
-                menu.append(rumps.MenuItem(lang, callback=callback))
-            menu.append(None)
-
-        self.menu = menu
-        self.menu["Stop Recording"].set_callback(None)
-
-        self.started = False
-        self.recorder = recorder
-        self.max_time = max_time
-        self.timer = None
-        self.elapsed_time = 0
-
-    def change_language(self, sender):
-        self.current_language = sender.title
-        for lang in self.languages:
-            self.menu[lang].set_callback(
-                self.change_language if lang != self.current_language else None
-            )
-
-    @rumps.clicked("Start Recording")
-    def start_app(self, _):
-        print("Listening...")
-        self.started = True
-        self.menu["Start Recording"].set_callback(None)
-        self.menu["Stop Recording"].set_callback(self.stop_app)
-        self.recorder.start(self.current_language)
-
-        if self.max_time is not None:
-            self.timer = threading.Timer(self.max_time, lambda: self.stop_app(None))
-            self.timer.start()
-
-        self.start_time = time.time()
-        self.update_title()
-
-    @rumps.clicked("Stop Recording")
-    def stop_app(self, _):
-        if not self.started:
-            return
-
-        if self.timer is not None:
-            self.timer.cancel()
-
-        print("Transcribing...")
-        self.title = "⏯"
-        self.started = False
-        self.menu["Stop Recording"].set_callback(None)
-        self.menu["Start Recording"].set_callback(self.start_app)
-        self.recorder.stop()
-        print("Done.\n")
-
-    def update_title(self):
-        if self.started:
-            self.elapsed_time = int(time.time() - self.start_time)
-            minutes, seconds = divmod(self.elapsed_time, 60)
-            self.title = f"({minutes:02d}:{seconds:02d}) 🔴"
-            threading.Timer(1, self.update_title).start()
-
-    def toggle(self):
-        if self.started:
-            self.stop_app(None)
-        else:
-            self.start_app(None)
-
-
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Dictation app using the MLX OpenAI Whisper model. By default the keyboard shortcut cmd+option "
-        "starts and stops dictation",
+        description="Dictation app using the MLX OpenAI Whisper model.",
     )
     parser.add_argument(
         "-m",
@@ -274,24 +178,7 @@ def parse_args():
             "mlx-community/whisper-turbo",
         ],
         default="mlx-community/whisper-large-v3-mlx",
-        help="""Specify the MLX Whisper model to use. Example: mlx-community/whisper-large-v3-mlx.
-        To see the  most up to date list of models visit https://huggingface.co/collections/mlx-community/whisper-663256f9964fbb1177db93dc?utm_source=chatgpt.com. 
-        Note that the models ending in .en are trained only on English speech and will perform better on English 
-        language.""",
-    )
-    parser.add_argument(
-        "-k",
-        "--key_combination",
-        type=str,
-        default="cmd_l+alt" if platform.system() == "Darwin" else "ctrl+alt",
-        help="Specify the key combination to toggle the app. Example: cmd_l+alt for macOS "
-        "ctrl+alt for other platforms. Default: cmd_r+alt (macOS) or ctrl+alt (others).",
-    )
-    parser.add_argument(
-        "--k_double_cmd",
-        action="store_true",
-        help="If set, use double Right Command key press on macOS to toggle the app (double click to begin recording, single click to stop recording). "
-        "Ignores the --key_combination argument.",
+        help="Specify the MLX Whisper model to use.",
     )
     parser.add_argument(
         "-l",
@@ -310,17 +197,25 @@ def parse_args():
         help="Specify the maximum recording time in seconds. The app will automatically stop recording after this duration. "
         "Default: 30 seconds.",
     )
+    parser.add_argument(
+        "-k",
+        "--key_combination",
+        type=str,
+        default="cmd_l+alt" if platform.system() == "Darwin" else "ctrl+alt",
+        help="Specify the key combination to toggle recording. Example: cmd_l+alt for macOS "
+        "or ctrl+alt for other platforms.",
+    )
+    parser.add_argument(
+        "-cv",
+        "--custom_vocabulary",
+        type=str,
+        default="",
+        help="Specify a comma separated list of custom vocabulary to improve recognition accuracy.",
+    )
 
     args = parser.parse_args()
 
-    if args.language is not None:
-        args.language = args.language.split(",")
-
-    if (
-        args.model_name.endswith(".en")
-        and args.language is not None
-        and any(lang != "en" for lang in args.language)
-    ):
+    if args.model_name.endswith(".en") and args.language != "en":
         raise ValueError(
             "If using a model ending in .en, you cannot specify a language other than English."
         )
@@ -331,35 +226,24 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    # commented out
-    """
-    print("Loading model...")
-    
-    #added this
-    print('model_name:', args.model_name)
-    
-    model = load_model(model_name)
-    
-    #added this
-    print(f"{model_name} model loaded")
-    """
-
-    # delayed order of this line
     model_name = args.model_name
-
-    # removed model argument passing
-    transcriber = SpeechTranscriber()
+    transcriber = SpeechTranscriber(
+        model_name, custom_vocabulary=args.custom_vocabulary
+    )
     recorder = Recorder(transcriber)
 
-    app = StatusBarApp(recorder, args.language, args.max_time)
-    if args.k_double_cmd:
-        key_listener = DoubleCommandKeyListener(app)
-    else:
-        key_listener = GlobalKeyListener(app, args.key_combination)
+    # Create and start the key listener
+    key_listener = GlobalKeyListener(recorder, args.key_combination)
     listener = keyboard.Listener(
         on_press=key_listener.on_key_press, on_release=key_listener.on_key_release
     )
     listener.start()
 
-    print("Running...")
-    app.run()
+    print(f"Ready. Press {args.key_combination} to start/stop recording...")
+
+    # Keep the main thread running
+    try:
+        while True:
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        print("\nExiting...")
